@@ -5,6 +5,7 @@ import { cpus } from "os";
 import path from "path";
 import cors from "cors";
 import router from "./route";
+import { PORT } from "./constants";
 
 const os = cpus().length;
 

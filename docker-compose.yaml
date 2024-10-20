@@ -6,12 +6,16 @@ services:
       context: ./
       target: prod
     container_name: convert-pdf
+    ports:
+      - 3002:3002
     volumes:
       - ./src:/app/src
       - ./public:/app/public
+    extra_hosts:
+      - "host.docker.condev:172.17.5.8"
     environment:
       - TZ=Asia/Bangkok
-    
+
 volumes:
   src:
     driver: local

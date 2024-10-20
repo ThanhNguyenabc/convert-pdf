@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import puppeteer from "puppeteer";
-import fs from "fs/promises";
+import { PORT } from "./constants";
+
 async function generatePDFfromHTML(
   cssLinks: string[],
   htmlContent: string,
@@ -65,7 +66,6 @@ ${cssLinks
   try {
     const pathFile = `public/${fileName}`;
     const pdf = await generatePDFfromHTML(cssLinks, htmlContent, pathFile);
-    const CONFIG = getAppConfig();
 
     const url = `http://${
       process.env.NODE_ENV === "development" ? "localhost" : "172.17.97.28"
