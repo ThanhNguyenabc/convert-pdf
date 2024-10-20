@@ -1,0 +1,15 @@
+{
+    "ignore": [
+        ".git",
+        "node_modules",
+        "dist",
+        "bitnami",
+        "test",
+        "data.xml"
+    ],
+    "watch": [
+        "./src"
+    ],
+    "ext": "ts",
+    "delay": 2000
+}
