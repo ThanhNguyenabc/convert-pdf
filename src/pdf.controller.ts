@@ -69,11 +69,13 @@ ${cssLinks
 
     const url = `http://${process.env.FILE_URL}:${PORT}/${fileName}`;
 
+    console.log("finish");
     return res.status(200).json({
       fileName,
       url,
     });
   } catch (error) {
+    console.log(error);
     return res.status(500).send(error);
   }
 };
