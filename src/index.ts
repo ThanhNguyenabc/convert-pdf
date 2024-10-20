@@ -6,6 +6,7 @@ import path from "path";
 import cors from "cors";
 import router from "./route";
 import { PORT } from "./constants";
+require("dotenv").config();
 
 const os = cpus().length;
 

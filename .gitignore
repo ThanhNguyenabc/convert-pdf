@@ -10,3 +10,4 @@ staging/bitnami
 .yarn
 public
 .DS_Store
+.env

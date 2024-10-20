@@ -68,7 +68,7 @@ ${cssLinks
     const pdf = await generatePDFfromHTML(cssLinks, htmlContent, pathFile);
 
     const url = `http://${
-      process.env.NODE_ENV === "development" ? "localhost" : "172.17.97.28"
+      process.env.FILE_URL
     }:${PORT}/${fileName}`;
 
     res.status(200).json({
