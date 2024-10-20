@@ -67,16 +67,14 @@ ${cssLinks
     const pathFile = `public/${fileName}`;
     const pdf = await generatePDFfromHTML(cssLinks, htmlContent, pathFile);
 
-    const url = `http://${
-      process.env.FILE_URL
-    }:${PORT}/${fileName}`;
+    const url = `http://${process.env.FILE_URL}:${PORT}/${fileName}`;
 
-    res.status(200).json({
+    return res.status(200).json({
       fileName,
       url,
     });
   } catch (error) {
-    res.status(500).send(error);
+    return res.status(500).send(error);
   }
 };
 
