@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import puppeteer from "puppeteer";
-import { PORT } from "./constants";
+import { PORT, PROD_URL } from "./constants";
 
 async function generatePDFfromHTML(
   cssLinks: string[],
@@ -37,7 +37,23 @@ async function generatePDFfromHTML(
 }
 
 const convertHtmlToPdf = async (req: Request, res: Response) => {
-  let { cssLinks = [], htmlContent = "", fileName } = req.body["data"] || {};
+  let {
+    cssLinks = [],
+    htmlContent = "",
+    fileName,
+    domain = "",
+  } = req.body["data"] || {};
+
+  cssLinks = cssLinks.map((item: string) => `${PROD_URL}${item}`);
+
+  //replace url with absolute path
+  htmlContent = htmlContent = htmlContent.replaceAll(
+    /\(content\/|"content\//g,
+    (string: string) => {
+      return string.replace("content", `${domain}/content`);
+    }
+  );
+
   htmlContent = `<!DOCTYPE html>
 <html>
   <head>
