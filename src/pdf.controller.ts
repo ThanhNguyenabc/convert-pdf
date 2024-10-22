@@ -52,9 +52,13 @@ const convertHtmlToPdf = async (req: Request, res: Response) => {
   cssLinks = cssLinks.map((item: string) => `${PROD_URL}${item}`);
 
   //replace url with absolute path
+
   htmlContent = htmlContent.replaceAll(
-    /\(content\/|"content\//g,
+    /\(content\/|"content\/|https:\/\/dev\.ila\.edu\.vn\.lms\.contdev/g,
     (string: string) => {
+      if (string.includes("https")) {
+        return domain;
+      }
       return string.replace("content", `${domain}/content`);
     }
   );
@@ -86,6 +90,7 @@ ${cssLinks
   try {
     const pathFile = `public/${fileName}`;
 
+    // fs.writeFile("public/data.html", htmlContent, () => {});
     const pdf = await generatePDFfromHTML(cssLinks, htmlContent, pathFile);
 
     const url = `http://${process.env.FILE_URL}:${PORT}/${fileName}`;
