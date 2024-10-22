@@ -8,6 +8,7 @@ async function generatePDFfromHTML(
   outputPath: string
 ) {
   const browser = await puppeteer.launch({
+    headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
   const page = await browser.newPage();
@@ -90,7 +91,9 @@ ${cssLinks
   try {
     const pathFile = `public/${fileName}`;
 
-    // fs.writeFile("public/data.html", htmlContent, () => {});
+    if (process.env.NODE_ENV == "development")
+      fs.writeFile("public/data.html", htmlContent, () => {});
+    
     const pdf = await generatePDFfromHTML(cssLinks, htmlContent, pathFile);
 
     const url = `http://${process.env.FILE_URL}:${PORT}/${fileName}`;
