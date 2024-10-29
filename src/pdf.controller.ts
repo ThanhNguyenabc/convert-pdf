@@ -47,13 +47,14 @@ const convertHtmlToPdf = async (req: Request, res: Response) => {
     fileName,
     type = "url",
     domain = "",
+    cssLinks = [],
   } = req.body["data"] || {};
 
   if (domain[domain.length - 1] === "/") {
     domain = domain.slice(0, -1);
   }
 
-  let cssLinks = ["./css/client.css", "./css/style.css"];
+  cssLinks = cssLinks.map((item: string) => `${domain}${item}`);
 
   //replace url with absolute path
 
