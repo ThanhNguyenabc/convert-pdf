@@ -9,13 +9,7 @@ async function generatePDFfromHTML(
 ) {
   const browser = await puppeteer.launch({
     headless: true,
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-features=IsolateOrigins",
-      "--disable-background-networking",
-      "--disable-background-timer-throttling",
-    ],
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
   const page = await browser.newPage();
   page.setDefaultTimeout(1800000);
