@@ -8,6 +8,6 @@ logs
 grafana/data
 staging/bitnami
 .yarn
-public
+public/*.html
 .DS_Store
 .env

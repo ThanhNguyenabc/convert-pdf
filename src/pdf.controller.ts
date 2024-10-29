@@ -12,7 +12,7 @@ async function generatePDFfromHTML(
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
-      "--font-render-hinting=medium",
+      "--font-render-hinting=none",
     ],
   });
   const page = await browser.newPage();
@@ -43,7 +43,6 @@ async function generatePDFfromHTML(
 
 const convertHtmlToPdf = async (req: Request, res: Response) => {
   let {
-    cssLinks = [],
     htmlContent = "",
     fileName,
     type = "url",
@@ -54,8 +53,7 @@ const convertHtmlToPdf = async (req: Request, res: Response) => {
     domain = domain.slice(0, -1);
   }
 
-  console.log("domain -->", domain);
-  cssLinks = cssLinks.map((item: string) => `${PROD_URL}${item}`);
+  let cssLinks = ["./css/client.css", "./css/style.css"];
 
   //replace url with absolute path
 
@@ -82,6 +80,7 @@ ${cssLinks
     />`
   )
   .join(" ")}
+
     <style>
       body {
         overflow: auto;
