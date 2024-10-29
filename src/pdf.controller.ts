@@ -9,7 +9,13 @@ async function generatePDFfromHTML(
 ) {
   const browser = await puppeteer.launch({
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-features=IsolateOrigins",
+      "--disable-background-networking",
+      "--disable-background-timer-throttling",
+    ],
   });
   const page = await browser.newPage();
   page.setDefaultTimeout(1800000);
@@ -42,6 +48,7 @@ const convertHtmlToPdf = async (req: Request, res: Response) => {
     cssLinks = [],
     htmlContent = "",
     fileName,
+    type = "url",
     domain = "",
   } = req.body["data"] || {};
 
@@ -93,16 +100,25 @@ ${cssLinks
 
     if (process.env.NODE_ENV == "development")
       fs.writeFile("public/data.html", htmlContent, () => {});
-    
+
     const pdf = await generatePDFfromHTML(cssLinks, htmlContent, pathFile);
 
     const url = `http://${process.env.FILE_URL}:${PORT}/${fileName}`;
 
-    console.log("finish");
-    return res.status(200).json({
-      fileName,
-      url,
-    });
+    if (type === "blob") {
+      const stream = require("stream");
+      const readStream = new stream.PassThrough();
+      readStream.end(pdf);
+      res.set("Content-disposition", "attachment; filename=" + fileName);
+      res.set("Content-Type", "application/pdf");
+      res.status(200);
+      return readStream.pipe(res);
+    } else {
+      return res.status(200).json({
+        fileName,
+        url,
+      });
+    }
   } catch (error) {
     console.log(error);
     return res.status(500).send(error);

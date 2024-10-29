@@ -17,6 +17,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.18.2",
     "fast-xml-parser": "^4.2.7",
+    "ghostscript4js": "^3.2.3",
     "pm2": "^5.4.2",
     "puppeteer": "^23.6.0",
     "ts-node": "^10.9.1",
