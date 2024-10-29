@@ -9,5 +9,6 @@ grafana/data
 staging/bitnami
 .yarn
 public/*.html
+public/*.pdf
 .DS_Store
 .env
