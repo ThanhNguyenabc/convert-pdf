@@ -12,7 +12,7 @@ async function generatePDFfromHTML(
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
-      "--font-render-hinting medium",
+      "--font-render-hinting=medium",
     ],
   });
   const page = await browser.newPage();
