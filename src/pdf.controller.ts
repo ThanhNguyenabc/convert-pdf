@@ -56,8 +56,8 @@ const convertHtmlToPdf = async (req: Request, res: Response) => {
   }
 
   cssLinks = [
-    "http://127.0.0.1:3002/css/style.css",
     "http://127.0.0.1:3002/css/client.css",
+    "http://127.0.0.1:3002/css/style.css",
   ];
 
   //replace url with absolute path
