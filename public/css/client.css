@@ -4672,7 +4672,7 @@
     font-style: normal;
     font-weight: 400;
     font-display: block;
-    src: url("../../resources/fonts/fa-regular-400.woff2") format("woff2")
+    src: url("/fonts/fa-regular-400.woff2") format("woff2")
 }
 
 .far, .fa-regular {
