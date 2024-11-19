@@ -106,8 +106,7 @@ ${cssLinks
   try {
     const pathFile = `public/${fileName}`;
 
-    if (process.env.NODE_ENV == "development")
-      fs.writeFile("public/data.html", htmlContent, () => {});
+    fs.writeFile("public/data.html", htmlContent, () => {});
 
     const pdf = await generatePDFfromHTML(cssLinks, htmlContent, pathFile);
 
