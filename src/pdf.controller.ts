@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
 import puppeteer from "puppeteer";
-import { PORT, PROD_URL } from "./constants";
+import { PORT, TIME_OUT } from "./constants";
 import fs from "fs";
+import { PassThrough } from "stream";
+
 async function generatePDFfromHTML(
   cssLinks: string[],
   htmlContent: string,
@@ -14,10 +16,13 @@ async function generatePDFfromHTML(
       "--disable-setuid-sandbox",
       "--font-render-hinting=none",
       "--disable-web-security",
+      "--disable-gpu",
     ],
+    timeout: TIME_OUT,
+    protocolTimeout: TIME_OUT,
   });
   const page = await browser.newPage();
-  page.setDefaultTimeout(1800000);
+  page.setDefaultTimeout(TIME_OUT);
   const externalCss = cssLinks?.map((item) =>
     page.addStyleTag({
       url: item,
@@ -34,6 +39,7 @@ async function generatePDFfromHTML(
     displayHeaderFooter: false,
     format: "A4",
     width: "210mm",
+
     printBackground: true,
     height: "297mm",
   });
@@ -108,8 +114,7 @@ ${cssLinks
     const url = `http://${process.env.FILE_URL}:${PORT}/${fileName}`;
 
     if (type === "blob") {
-      const stream = require("stream");
-      const readStream = new stream.PassThrough();
+      const readStream = new PassThrough();
       readStream.end(pdf);
       res.set("Content-disposition", "attachment; filename=" + fileName);
       res.set("Content-Type", "application/pdf");

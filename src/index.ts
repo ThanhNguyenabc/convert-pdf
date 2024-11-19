@@ -2,10 +2,10 @@ import express from "express";
 import bodyParser from "body-parser";
 import cluster from "cluster";
 import { cpus } from "os";
-import path from "path";
 import cors from "cors";
 import router from "./route";
 import { PORT } from "./constants";
+import compression from "compression";
 require("dotenv").config();
 
 const os = cpus().length;
@@ -13,6 +13,11 @@ const os = cpus().length;
 const createApplication = () => {
   const app = express();
   app.use(cors());
+  app.use(
+    compression({
+      level: 6,
+    })
+  );
   app.use(express.static("public"));
   app.use(bodyParser.json({ limit: "100mb" }));
   app.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
