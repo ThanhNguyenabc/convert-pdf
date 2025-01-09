@@ -134,8 +134,6 @@ ${cssLinks
       headers.set("Content-Length", zipBuffer.length);
       res.setHeaders(headers);
       res.send(zipBuffer);
-      fs.unlinkSync(pathFile);
-      return;
     } else {
       const url = `http://${process.env.FILE_URL}:${PORT}/${fileName}.pdf`;
       return res.status(200).json({
