@@ -26,6 +26,23 @@ async function generatePDFfromHTML(
     protocolTimeout: TIME_OUT,
   });
   const page = await browser.newPage();
+
+  // Track failed requests
+  page.on("requestfailed", (request) => {
+    console.log("Request failed:", request.url());
+  });
+
+  // Track responses
+  page.on("response", (response) => {
+    if (!response.ok()) {
+      console.log(
+        "Response failed:",
+        response.url(),
+        "Status:",
+        response.status()
+      );
+    }
+  });
   await page.setUserAgent(
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36"
   );
