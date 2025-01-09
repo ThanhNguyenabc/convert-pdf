@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import puppeteer from "puppeteer";
 import { PORT, TIME_OUT } from "./constants";
 import fs from "fs";
-import { PassThrough } from "stream";
+import AdmZip from "adm-zip";
 
 async function generatePDFfromHTML(
   cssLinks: string[],
@@ -13,15 +13,23 @@ async function generatePDFfromHTML(
     headless: true,
     args: [
       "--no-sandbox",
+      "'--disable-gpu",
       "--disable-setuid-sandbox",
       "--font-render-hinting=none",
       "--disable-web-security",
-      "--disable-gpu",
+      '--proxy-server="direct://"',
+      "--devtools=false",
+      "--proxy-bypass-list=*",
     ],
+
     timeout: TIME_OUT,
     protocolTimeout: TIME_OUT,
   });
   const page = await browser.newPage();
+  await page.setUserAgent(
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36"
+  );
+
   page.setDefaultTimeout(TIME_OUT);
   const externalCss = cssLinks?.map((item) =>
     page.addStyleTag({
@@ -30,7 +38,10 @@ async function generatePDFfromHTML(
   );
   await Promise.all(externalCss);
 
-  await page.setContent(htmlContent, { waitUntil: "load" });
+  await page.setContent(htmlContent, {
+    waitUntil: "networkidle0",
+    timeout: TIME_OUT,
+  });
 
   await page.emulateMediaType("screen");
 
@@ -104,22 +115,30 @@ ${cssLinks
 </html>`;
 
   try {
-    const pathFile = `public/${fileName}`;
+    const pathFile = `public/${fileName}.pdf`;
 
     fs.writeFile("public/data.html", htmlContent, () => {});
 
     const pdf = await generatePDFfromHTML(cssLinks, htmlContent, pathFile);
 
-    const url = `http://${process.env.FILE_URL}:${PORT}/${fileName}`;
-
     if (type === "blob") {
-      const readStream = new PassThrough();
-      readStream.end(pdf);
-      res.set("Content-disposition", "attachment; filename=" + fileName);
-      res.set("Content-Type", "application/pdf");
-      res.status(200);
-      return readStream.pipe(res);
+      const zip = new AdmZip();
+      zip.addLocalFile(pathFile);
+
+      const zipBuffer = zip.toBuffer();
+      const headers = new Map();
+      headers.set("Content-Type", "application/zip");
+      headers.set(
+        "Content-Disposition",
+        `attachment; filename=${fileName}.zip`
+      );
+      headers.set("Content-Length", zipBuffer.length);
+      res.setHeaders(headers);
+      res.send(zipBuffer);
+      fs.unlinkSync(pathFile);
+      return;
     } else {
+      const url = `http://${process.env.FILE_URL}:${PORT}/${fileName}.pdf`;
       return res.status(200).json({
         fileName,
         url,
