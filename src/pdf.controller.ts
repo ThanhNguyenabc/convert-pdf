@@ -65,14 +65,13 @@ const convertHtmlToPdf = async (req: Request, res: Response) => {
     fileName,
     type = "url",
     domain = "",
-    cssLinks = [],
   } = req.body["data"] || {};
 
   if (domain[domain.length - 1] === "/") {
     domain = domain.slice(0, -1);
   }
 
-  cssLinks = [
+  const cssLinks = [
     "http://127.0.0.1:3002/css/client.css",
     "http://127.0.0.1:3002/css/style.css",
   ];
