@@ -3,68 +3,63 @@ import puppeteer from "puppeteer";
 import { ChormeArgs, PORT, TIME_OUT } from "./constants";
 import fs from "fs";
 import AdmZip from "adm-zip";
+import htmlMinifier from "@node-minify/html-minifier";
+import minify from "@node-minify/core";
+
+const cssLinks = [
+  "http://127.0.0.1:3002/css/client.css",
+  "http://127.0.0.1:3002/css/style.css",
+];
 
 async function generatePDFfromHTML(
   cssLinks: string[],
   htmlContent: string,
   outputPath: string
 ) {
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ChormeArgs,
+  try {
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ChormeArgs,
+      timeout: TIME_OUT,
+      protocolTimeout: 0,
+    });
 
-    timeout: TIME_OUT,
-    protocolTimeout: TIME_OUT,
-  });
-  const page = await browser.newPage();
+    const page = await browser.newPage();
 
-  page.setRequestInterception(true);
-  // Track failed requests
-  page.on("requestfailed", (request) => {
-    console.log("Request failed:", request.url());
-  });
+    await page.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36"
+    );
 
-  // Track responses
-  page.on("response", (response) => {
-    if (!response.ok()) {
-      console.log(
-        "Response failed:",
-        response.url(),
-        "Status:",
-        response.status()
-      );
-    }
-  });
-  await page.setUserAgent(
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36"
-  );
+    const externalCss = cssLinks?.map((item) =>
+      page.addStyleTag({
+        path: item,
+      })
+    );
+    await Promise.all(externalCss).catch((error) => {
+      console.log(error);
+    });
 
-  page.setDefaultTimeout(TIME_OUT);
-  const externalCss = cssLinks?.map((item) =>
-    page.addStyleTag({
-      url: item,
-    })
-  );
-  await Promise.all(externalCss);
+    await page.setContent(htmlContent, {
+      waitUntil: "domcontentloaded",
+      timeout: 0,
+    });
 
-  await page.setContent(htmlContent, {
-    waitUntil: "load",
-    timeout: TIME_OUT,
-  });
-
-  await page.emulateMediaType("screen");
-
-  const pdf = await page.pdf({
-    path: outputPath,
-    displayHeaderFooter: false,
-    format: "A4",
-    width: "210mm",
-    timeout: TIME_OUT,
-    printBackground: true,
-    height: "297mm",
-  });
-  await page.close();
-  return pdf;
+    const pdf = await page.pdf({
+      path: outputPath,
+      displayHeaderFooter: false,
+      format: "A4",
+      width: "210mm",
+      timeout: TIME_OUT,
+      printBackground: true,
+      height: "297mm",
+    });
+    await page.close();
+    return pdf;
+  } catch (error) {
+    console.log("pdf error:::");
+    console.log(error);
+    return null;
+  }
 }
 
 const convertHtmlToPdf = async (req: Request, res: Response) => {
@@ -78,11 +73,6 @@ const convertHtmlToPdf = async (req: Request, res: Response) => {
   if (domain[domain.length - 1] === "/") {
     domain = domain.slice(0, -1);
   }
-
-  const cssLinks = [
-    "http://127.0.0.1:3002/css/client.css",
-    "http://127.0.0.1:3002/css/style.css",
-  ];
 
   //replace url with absolute path
 
@@ -122,15 +112,33 @@ ${cssLinks
 </html>`;
 
   try {
-    const pathFile = `public/${fileName}.pdf`;
+    const pdfFile = `public/${fileName}.pdf`;
+    const htmlFile = "public/data.html";
 
-    fs.writeFile("public/data.html", htmlContent, () => {});
+    const minifiedHTML =
+      ((await minify({
+        compressor: htmlMinifier,
+        content: htmlContent,
+      })) as string) || "";
 
-    const pdf = await generatePDFfromHTML(cssLinks, htmlContent, pathFile);
+    fs.writeFile(htmlFile, minifiedHTML, () => {});
+
+    const pdf = await generatePDFfromHTML(
+      ["public/css/client.css", "public/css/style.css"],
+      minifiedHTML,
+      pdfFile
+    );
+
+    if (!pdf) {
+      return res.status(500).json({
+        message: "Can not generating pdf",
+      });
+    }
 
     if (type === "blob") {
+
       const zip = new AdmZip();
-      zip.addLocalFile(pathFile);
+      zip.addFile(`${fileName}.pdf`, Buffer.from(pdf));
 
       const zipBuffer = zip.toBuffer();
       const headers = new Map();
@@ -142,6 +150,8 @@ ${cssLinks
       headers.set("Content-Length", zipBuffer.length);
       res.setHeaders(headers);
       res.send(zipBuffer);
+      fs.unlinkSync(htmlFile);
+      fs.unlinkSync(pdfFile);
     } else {
       const url = `http://${process.env.FILE_URL}:${PORT}/${fileName}.pdf`;
       return res.status(200).json({

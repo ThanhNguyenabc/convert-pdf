@@ -17,48 +17,50 @@ const puppeteer_1 = __importDefault(require("puppeteer"));
 const constants_1 = require("./constants");
 const fs_1 = __importDefault(require("fs"));
 const adm_zip_1 = __importDefault(require("adm-zip"));
+const html_minifier_1 = __importDefault(require("@node-minify/html-minifier"));
+const core_1 = __importDefault(require("@node-minify/core"));
+const cssLinks = [
+    "http://127.0.0.1:3002/css/client.css",
+    "http://127.0.0.1:3002/css/style.css",
+];
 function generatePDFfromHTML(cssLinks, htmlContent, outputPath) {
     return __awaiter(this, void 0, void 0, function* () {
-        const browser = yield puppeteer_1.default.launch({
-            headless: true,
-            args: constants_1.ChormeArgs,
-            timeout: constants_1.TIME_OUT,
-            protocolTimeout: constants_1.TIME_OUT,
-        });
-        const page = yield browser.newPage();
-        page.setRequestInterception(true);
-        // Track failed requests
-        page.on("requestfailed", (request) => {
-            console.log("Request failed:", request.url());
-        });
-        // Track responses
-        page.on("response", (response) => {
-            if (!response.ok()) {
-                console.log("Response failed:", response.url(), "Status:", response.status());
-            }
-        });
-        yield page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36");
-        page.setDefaultTimeout(constants_1.TIME_OUT);
-        const externalCss = cssLinks === null || cssLinks === void 0 ? void 0 : cssLinks.map((item) => page.addStyleTag({
-            url: item,
-        }));
-        yield Promise.all(externalCss);
-        yield page.setContent(htmlContent, {
-            waitUntil: "load",
-            timeout: constants_1.TIME_OUT,
-        });
-        yield page.emulateMediaType("screen");
-        const pdf = yield page.pdf({
-            path: outputPath,
-            displayHeaderFooter: false,
-            format: "A4",
-            width: "210mm",
-            timeout: constants_1.TIME_OUT,
-            printBackground: true,
-            height: "297mm",
-        });
-        yield page.close();
-        return pdf;
+        try {
+            const browser = yield puppeteer_1.default.launch({
+                headless: true,
+                args: constants_1.ChormeArgs,
+                timeout: constants_1.TIME_OUT,
+                protocolTimeout: 0,
+            });
+            const page = yield browser.newPage();
+            yield page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36");
+            const externalCss = cssLinks === null || cssLinks === void 0 ? void 0 : cssLinks.map((item) => page.addStyleTag({
+                path: item,
+            }));
+            yield Promise.all(externalCss).catch((error) => {
+                console.log(error);
+            });
+            yield page.setContent(htmlContent, {
+                waitUntil: "domcontentloaded",
+                timeout: 0,
+            });
+            const pdf = yield page.pdf({
+                path: outputPath,
+                displayHeaderFooter: false,
+                format: "A4",
+                width: "210mm",
+                timeout: constants_1.TIME_OUT,
+                printBackground: true,
+                height: "297mm",
+            });
+            yield page.close();
+            return pdf;
+        }
+        catch (error) {
+            console.log("pdf error:::");
+            console.log(error);
+            return null;
+        }
     });
 }
 const convertHtmlToPdf = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -66,10 +68,6 @@ const convertHtmlToPdf = (req, res) => __awaiter(void 0, void 0, void 0, functio
     if (domain[domain.length - 1] === "/") {
         domain = domain.slice(0, -1);
     }
-    const cssLinks = [
-        "http://127.0.0.1:3002/css/client.css",
-        "http://127.0.0.1:3002/css/style.css",
-    ];
     //replace url with absolute path
     htmlContent = htmlContent.replaceAll(/\(content\/|"content\/|https:\/\/dev\.ila\.edu\.vn\.lms\.contdev/g, (string) => {
         if (string.includes("https")) {
@@ -99,12 +97,22 @@ ${cssLinks === null || cssLinks === void 0 ? void 0 : cssLinks.map((link) => `<l
   <body>${htmlContent}</body>
 </html>`;
     try {
-        const pathFile = `public/${fileName}.pdf`;
-        fs_1.default.writeFile("public/data.html", htmlContent, () => { });
-        const pdf = yield generatePDFfromHTML(cssLinks, htmlContent, pathFile);
+        const pdfFile = `public/${fileName}.pdf`;
+        const htmlFile = "public/data.html";
+        const minifiedHTML = (yield (0, core_1.default)({
+            compressor: html_minifier_1.default,
+            content: htmlContent,
+        })) || "";
+        fs_1.default.writeFile(htmlFile, minifiedHTML, () => { });
+        const pdf = yield generatePDFfromHTML(["public/css/client.css", "public/css/style.css"], minifiedHTML, pdfFile);
+        if (!pdf) {
+            return res.status(500).json({
+                message: "Can not generating pdf",
+            });
+        }
         if (type === "blob") {
             const zip = new adm_zip_1.default();
-            zip.addLocalFile(pathFile);
+            zip.addFile(`${fileName}.pdf`, Buffer.from(pdf));
             const zipBuffer = zip.toBuffer();
             const headers = new Map();
             headers.set("Content-Type", "application/zip");
@@ -112,6 +120,8 @@ ${cssLinks === null || cssLinks === void 0 ? void 0 : cssLinks.map((link) => `<l
             headers.set("Content-Length", zipBuffer.length);
             res.setHeaders(headers);
             res.send(zipBuffer);
+            fs_1.default.unlinkSync(htmlFile);
+            fs_1.default.unlinkSync(pdfFile);
         }
         else {
             const url = `http://${process.env.FILE_URL}:${constants_1.PORT}/${fileName}.pdf`;
