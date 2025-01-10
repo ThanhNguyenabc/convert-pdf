@@ -40,7 +40,7 @@ async function generatePDFfromHTML(
     });
 
     await page.setContent(htmlContent, {
-      waitUntil: "domcontentloaded",
+      waitUntil: "load",
       timeout: 0,
     });
 
@@ -136,7 +136,6 @@ ${cssLinks
     }
 
     if (type === "blob") {
-
       const zip = new AdmZip();
       zip.addFile(`${fileName}.pdf`, Buffer.from(pdf));
 
@@ -150,7 +149,7 @@ ${cssLinks
       headers.set("Content-Length", zipBuffer.length);
       res.setHeaders(headers);
       res.send(zipBuffer);
-      fs.unlinkSync(htmlFile);
+      // fs.unlinkSync(htmlFile);
       fs.unlinkSync(pdfFile);
     } else {
       const url = `http://${process.env.FILE_URL}:${PORT}/${fileName}.pdf`;
