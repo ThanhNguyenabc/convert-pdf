@@ -2,7 +2,6 @@ node_modules
 *.lock
 *.log
 bitnami
-dist
 .vscode/launch.json
 logs
 grafana/data
