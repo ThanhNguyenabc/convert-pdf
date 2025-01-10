@@ -41,7 +41,7 @@ function generatePDFfromHTML(cssLinks, htmlContent, outputPath) {
                 console.log(error);
             });
             yield page.setContent(htmlContent, {
-                waitUntil: "domcontentloaded",
+                waitUntil: "load",
                 timeout: 0,
             });
             const pdf = yield page.pdf({
@@ -120,7 +120,7 @@ ${cssLinks === null || cssLinks === void 0 ? void 0 : cssLinks.map((link) => `<l
             headers.set("Content-Length", zipBuffer.length);
             res.setHeaders(headers);
             res.send(zipBuffer);
-            fs_1.default.unlinkSync(htmlFile);
+            // fs.unlinkSync(htmlFile);
             fs_1.default.unlinkSync(pdfFile);
         }
         else {
