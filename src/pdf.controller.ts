@@ -18,6 +18,7 @@ async function generatePDFfromHTML(
   });
   const page = await browser.newPage();
 
+  page.setRequestInterception(true);
   // Track failed requests
   page.on("requestfailed", (request) => {
     console.log("Request failed:", request.url());
@@ -47,7 +48,7 @@ async function generatePDFfromHTML(
   await Promise.all(externalCss);
 
   await page.setContent(htmlContent, {
-    waitUntil: "networkidle0",
+    waitUntil: "load",
     timeout: TIME_OUT,
   });
 

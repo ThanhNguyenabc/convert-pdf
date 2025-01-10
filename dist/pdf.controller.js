@@ -26,6 +26,7 @@ function generatePDFfromHTML(cssLinks, htmlContent, outputPath) {
             protocolTimeout: constants_1.TIME_OUT,
         });
         const page = yield browser.newPage();
+        page.setRequestInterception(true);
         // Track failed requests
         page.on("requestfailed", (request) => {
             console.log("Request failed:", request.url());
@@ -43,7 +44,7 @@ function generatePDFfromHTML(cssLinks, htmlContent, outputPath) {
         }));
         yield Promise.all(externalCss);
         yield page.setContent(htmlContent, {
-            waitUntil: "networkidle0",
+            waitUntil: "load",
             timeout: constants_1.TIME_OUT,
         });
         yield page.emulateMediaType("screen");
