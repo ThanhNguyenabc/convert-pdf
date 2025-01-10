@@ -58,7 +58,7 @@ async function generatePDFfromHTML(
     displayHeaderFooter: false,
     format: "A4",
     width: "210mm",
-
+    timeout: TIME_OUT,
     printBackground: true,
     height: "297mm",
   });
