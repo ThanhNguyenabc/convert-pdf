@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "prod": "node dist/index.js",
-    "start": "pm2 start dist/index.js",
+    "start": "pm2 start ecosystem.config.js",
     "dev": "nodemon --exec ts-node src/index.ts"
   },
   "dependencies": {
