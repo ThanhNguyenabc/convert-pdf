@@ -3,6 +3,17 @@ export const PROD_URL = "https://lmstest.ila.edu.vn";
 
 export const TIME_OUT = 1800000;
 
+export const ChormeArgs = [
+  "--no-sandbox",
+  "--disable-setuid-sandbox",
+  "--disable-dev-shm-usage",
+  "--disable-accelerated-2d-canvas",
+  "--disable-gpu",
+  "--font-render-hinting=none",
+  "--disable-web-security",
+  "--devtools=false",
+];
+
 function executeCommand(cmd: string, parameters: string[]) {
   const spawnSync = require("child_process").spawnSync;
   const result = spawnSync(cmd, parameters, {

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import puppeteer from "puppeteer";
-import { PORT, TIME_OUT } from "./constants";
+import { ChormeArgs, PORT, TIME_OUT } from "./constants";
 import fs from "fs";
 import AdmZip from "adm-zip";
 
@@ -11,16 +11,7 @@ async function generatePDFfromHTML(
 ) {
   const browser = await puppeteer.launch({
     headless: true,
-    args: [
-      "--no-sandbox",
-      "'--disable-gpu",
-      "--disable-setuid-sandbox",
-      "--font-render-hinting=none",
-      "--disable-web-security",
-      '--proxy-server="direct://"',
-      "--devtools=false",
-      "--proxy-bypass-list=*",
-    ],
+    args: ChormeArgs,
 
     timeout: TIME_OUT,
     protocolTimeout: TIME_OUT,
@@ -72,7 +63,6 @@ async function generatePDFfromHTML(
     height: "297mm",
   });
   await page.close();
-  await browser.close();
   return pdf;
 }
 
