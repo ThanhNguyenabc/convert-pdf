@@ -150,7 +150,7 @@ ${cssLinks
       res.setHeaders(headers);
       res.send(zipBuffer);
       // fs.unlinkSync(htmlFile);
-      fs.unlinkSync(pdfFile);
+      // fs.unlinkSync(pdfFile);
     } else {
       const url = `http://${process.env.FILE_URL}:${PORT}/${fileName}.pdf`;
       return res.status(200).json({
