@@ -2,20 +2,9 @@ import { Request, Response } from "express";
 import puppeteer from "puppeteer";
 import { ChormeArgs, PORT, TIME_OUT } from "./constants";
 import fs from "fs";
-import AdmZip from "adm-zip";
-import htmlMinifier from "@node-minify/html-minifier";
-import minify from "@node-minify/core";
+import sharp from "sharp";
 
-const cssLinks = [
-  "http://127.0.0.1:3002/css/client.css",
-  "http://127.0.0.1:3002/css/style.css",
-];
-
-async function generatePDFfromHTML(
-  cssLinks: string[],
-  htmlContent: string,
-  outputPath: string
-) {
+async function generatePDFfromHTML(htmlContent: string, outputPath: string) {
   try {
     const browser = await puppeteer.launch({
       headless: true,
@@ -25,24 +14,49 @@ async function generatePDFfromHTML(
     });
 
     const page = await browser.newPage();
-
     await page.setUserAgent(
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36"
     );
 
-    const externalCss = cssLinks?.map((item) =>
-      page.addStyleTag({
-        path: item,
-      })
-    );
-    await Promise.all(externalCss).catch((error) => {
-      console.log(error);
+    // Set interception to handle image requests
+
+    await page.setRequestInterception(true);
+    page.on("request", async (req) => {
+      if (req.resourceType() !== "image") {
+        req.continue();
+        return;
+      }
+      try {
+        const response = await fetch(req.url(), {
+          method: req.method(),
+          headers: req.headers(),
+        });
+        const buffer = await response.arrayBuffer();
+        if (buffer.byteLength > 100000) {
+          const resizedImage = await sharp(buffer)
+            .resize({
+              width: 800,
+              withoutEnlargement: true,
+            }) // Resize if larger than 800px
+            .png({
+              quality: 90, // Reduce quality to 80%
+              compressionLevel: 9, // Max compression (0-9)
+            })
+            .toBuffer();
+          req.respond({ body: resizedImage });
+        } else {
+          req.continue();
+        }
+      } catch {
+        req.continue();
+      }
     });
 
     await page.setContent(htmlContent, {
       waitUntil: "load",
       timeout: 0,
     });
+    await page.emulateMediaType("screen");
 
     const pdf = await page.pdf({
       path: outputPath,
@@ -66,7 +80,7 @@ const convertHtmlToPdf = async (req: Request, res: Response) => {
   let {
     htmlContent = "",
     fileName,
-    type = "url",
+    type = "blob",
     domain = "",
   } = req.body["data"] || {};
 
@@ -74,10 +88,8 @@ const convertHtmlToPdf = async (req: Request, res: Response) => {
     domain = domain.slice(0, -1);
   }
 
-  //replace url with absolute path
-
-  htmlContent = htmlContent.replaceAll(
-    /\(content\/|"content\/|https:\/\/dev\.ila\.edu\.vn\.lms\.contdev/g,
+  htmlContent = htmlContent.replace(
+    /\(content\/|"content\/|/g,
     (string: string) => {
       if (string.includes("https")) {
         return domain;
@@ -85,21 +97,19 @@ const convertHtmlToPdf = async (req: Request, res: Response) => {
       return string.replace("content", `${domain}/content`);
     }
   );
-  htmlContent = `<!DOCTYPE html>
+
+  const [clientCss, styleCss] = await Promise.all([
+    fs.promises.readFile("public/css/client.css", "utf-8"),
+    fs.promises.readFile("public/css/style.css", "utf-8"),
+  ]);
+
+  const htmlPage = `<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-${cssLinks
-  ?.map(
-    (link: string) => `<link
-      rel="stylesheet"
-      type="text/css"
-      href="${link}"
-    />`
-  )
-  .join(" ")}
-
+    <style>${clientCss}</style>
+    <style>${styleCss}</style>
     <style>
       body {
         overflow: auto;
@@ -113,21 +123,11 @@ ${cssLinks
 
   try {
     const pdfFile = `public/${fileName}.pdf`;
-    const htmlFile = "public/data.html";
+    fs.writeFile("public/data.html", htmlPage, () => {});
 
-    const minifiedHTML =
-      ((await minify({
-        compressor: htmlMinifier,
-        content: htmlContent,
-      })) as string) || "";
-
-    fs.writeFile(htmlFile, minifiedHTML, () => {});
-
-    const pdf = await generatePDFfromHTML(
-      ["public/css/client.css", "public/css/style.css"],
-      minifiedHTML,
-      pdfFile
-    );
+    console.time("pdf time");
+    const pdf = await generatePDFfromHTML(htmlPage, pdfFile);
+    console.timeEnd("pdf time");
 
     if (!pdf) {
       return res.status(500).json({
@@ -135,22 +135,18 @@ ${cssLinks
       });
     }
 
-    if (type === "blob") {
-      const zip = new AdmZip();
-      zip.addFile(`${fileName}.pdf`, Buffer.from(pdf));
+    const pdfBuffer = Buffer.from(pdf);
 
-      const zipBuffer = zip.toBuffer();
+    if (type === "blob") {
       const headers = new Map();
-      headers.set("Content-Type", "application/zip");
+      headers.set("Content-Type", "application/pdf");
       headers.set(
         "Content-Disposition",
-        `attachment; filename=${fileName}.zip`
+        `attachment; filename=${fileName}.pdf`
       );
-      headers.set("Content-Length", zipBuffer.length);
+      headers.set("Content-Length", pdfBuffer.length);
       res.setHeaders(headers);
-      res.send(zipBuffer);
-      // fs.unlinkSync(htmlFile);
-      // fs.unlinkSync(pdfFile);
+      res.send(pdfBuffer);
     } else {
       const url = `http://${process.env.FILE_URL}:${PORT}/${fileName}.pdf`;
       return res.status(200).json({
