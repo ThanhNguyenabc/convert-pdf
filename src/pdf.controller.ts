@@ -39,7 +39,7 @@ async function generatePDFfromHTML(htmlContent: string, outputPath: string) {
               withoutEnlargement: true,
             }) // Resize if larger than 800px
             .png({
-              quality: 90, // Reduce quality to 80%
+              quality: 86, // Reduce quality to 80%
               compressionLevel: 9, // Max compression (0-9)
             })
             .toBuffer();

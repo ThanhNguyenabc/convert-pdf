@@ -10,23 +10,24 @@ RUN apk add --no-cache \
     freetype \
     harfbuzz \
     ca-certificates \
-    ttf-freefont \
-    nodejs \
-    yarn
+    ttf-freefont
 
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 # RUN apk add ghostscript -l
+COPY ./src ./src
+COPY ./public ./public
+COPY ./package.json ./package.json
+COPY ./tsconfig.json ./tsconfig.json
+COPY ./webpack.config.js ./webpack.config.js
 
 RUN yarn global add typescript
 RUN yarn install --network-timeout=60000
-# copy source code
-COPY ./src ./src
 
-FROM base AS prod
-# RUN yarn build
+FROM base AS production
 RUN echo "This is production env"
 ENV NODE_ENV=production
+RUN yarn build
 CMD [ "yarn", "start" ]
 
 
