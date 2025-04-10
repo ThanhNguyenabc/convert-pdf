@@ -4,14 +4,12 @@ services:
   app:
     user: root
     build:
-      context: ./
-      target: dev
-    container_name: convert-pdf
+      target: production
+    container_name: html-pdf
     ports:
       - 3002:3002
     volumes:
-      - ./src:/app/src
-      - ./public:/app/public
+      - ./public:/app/public   
     environment:
       - TZ=Asia/Bangkok
 
