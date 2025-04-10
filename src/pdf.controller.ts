@@ -3,8 +3,6 @@ import puppeteer from "puppeteer";
 import { ChormeArgs, PORT, TIME_OUT } from "./constants";
 import fs from "fs";
 import AdmZip from "adm-zip";
-import htmlMinifier from "@node-minify/html-minifier";
-import minify from "@node-minify/core";
 
 const cssLinks = [
   "http://127.0.0.1:3002/css/client.css",
@@ -115,17 +113,17 @@ ${cssLinks
     const pdfFile = `public/${fileName}.pdf`;
     const htmlFile = "public/data.html";
 
-    const minifiedHTML =
-      ((await minify({
-        compressor: htmlMinifier,
-        content: htmlContent,
-      })) as string) || "";
+    // const minifiedHTML =
+    //   ((await minify({
+    //     compressor: htmlMinifier,
+    //     content: htmlContent,
+    //   })) as string) || "";
 
-    fs.writeFile(htmlFile, minifiedHTML, () => {});
+    // fs.writeFile(htmlFile, minifiedHTML, () => {});
 
     const pdf = await generatePDFfromHTML(
       ["public/css/client.css", "public/css/style.css"],
-      minifiedHTML,
+      htmlContent,
       pdfFile
     );
 
