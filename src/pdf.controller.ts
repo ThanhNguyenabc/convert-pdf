@@ -6,7 +6,7 @@ import sharp from "sharp";
 import minifyHtml from "@minify-html/node";
 import { createHash } from "crypto";
 import path from "path";
-import { sanitizeHTML } from "@/string_helper";
+import { sanitizeHTML } from "./string_helper";
 
 async function generatePDFfromHTML(htmlContent: string, outputPath: string) {
   try {
@@ -122,6 +122,7 @@ const convertHtmlToPdf = async (req: Request, res: Response) => {
       return res.download(pdfFile);
     }
 
+  
     console.time("pdf rendering time");
     const pdf = await generatePDFfromHTML(html, pdfFile);
     console.timeEnd("pdf rendering time");

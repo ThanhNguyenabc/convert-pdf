@@ -4,6 +4,7 @@ services:
   app:
     user: root
     build:
+      context: .
       target: production
     container_name: html-pdf
     ports:
