@@ -112,7 +112,6 @@ const convertHtmlToPdf = async (req: Request, res: Response) => {
     });
     const html = minifyHtmlPage.toString("utf-8");
 
-    fs.writeFile("public/data.html", html, () => {});
     const hash = createHash("sha256")
       .update(html + domain)
       .digest("hex");
