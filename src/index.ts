@@ -1,10 +1,11 @@
 import express from "express";
 import bodyParser from "body-parser";
-import cluster from "cluster";
 import { cpus } from "os";
 import cors from "cors";
 import router from "./route";
 import { PORT } from "./constants";
+import cluster from "cluster";
+
 require("dotenv").config();
 
 const os = cpus().length;

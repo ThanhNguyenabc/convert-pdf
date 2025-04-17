@@ -1,28 +1,36 @@
-FROM node:23.11.0-alpine AS base
+FROM  node:23.11.0-slim AS base
+
+RUN apt-get update && apt-get install -y \
+  fonts-liberation \
+  libappindicator3-1 \
+  libasound2 \
+  libatk-bridge2.0-0 \
+  libatk1.0-0 \
+  libcups2 \
+  libdbus-1-3 \
+  libgdk-pixbuf2.0-0 \
+  libnspr4 \
+  libnss3 \
+  libx11-xcb1 \
+  libxcomposite1 \
+  libxdamage1 \
+  libxrandr2 \
+  xdg-utils \
+  libgbm-dev \
+  && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+
 USER root
 WORKDIR /app
+
 # copy all dpendecies
 COPY package.json nodemon.json tsconfig.json ./
-RUN apk add curl
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont
 
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-ENV PUPPETEER_SKIP_DOWNLOAD=true
-# RUN apk add ghostscript -l
-COPY ./src ./src
-COPY ./public ./public
-COPY ./package.json ./package.json
-COPY ./tsconfig.json ./tsconfig.json
-COPY ./webpack.config.js ./webpack.config.js
+RUN yarn global add typescript \
+    && yarn install --frozen-lockfile --network-timeout=60000 \
+    && yarn cache clean
 
-RUN yarn global add typescript
-RUN yarn install --network-timeout=60000
+COPY . .
 
 FROM base AS production
 RUN echo "This is production env"
@@ -32,11 +40,9 @@ CMD [ "yarn", "start" ]
 
 
 FROM base AS staging
-# RUN yarn build
 RUN echo "This is staging env"
 ENV NODE_ENV=staging
 CMD [ "yarn", "start" ]
-
 
 
 FROM base AS dev

@@ -9,9 +9,10 @@ export const ChormeArgs = [
   "--disable-dev-shm-usage",
   "--disable-accelerated-2d-canvas",
   "--disable-gpu",
-  "--font-render-hinting=none",
   "--disable-web-security",
   "--devtools=false",
+  "--no-zygote",
+  "--single-process",
 ];
 
 function executeCommand(cmd: string, parameters: string[]) {
