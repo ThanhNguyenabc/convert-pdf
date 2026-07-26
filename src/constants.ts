@@ -12,7 +12,19 @@ export const ChormeArgs = [
   "--disable-web-security",
   "--devtools=false",
   "--no-zygote",
-  "--single-process",
+  "--disable-background-networking",
+  "--disable-background-timer-throttling",
+  "--disable-breakpad",
+  "--disable-component-update",
+  "--disable-domain-reliability",
+  "--disable-features=Translate,BackForwardCache",
+  "--disable-ipc-flooding-protection",
+  "--disable-renderer-backgrounding",
+  "--disable-sync",
+  "--metrics-recording-only",
+  "--mute-audio",
+  "--no-first-run",
+  "--no-default-browser-check",
 ];
 
 function executeCommand(cmd: string, parameters: string[]) {
@@ -29,7 +41,7 @@ function executeCommand(cmd: string, parameters: string[]) {
 export const resamplePDF = (
   source_pdf: string,
   output_file: string,
-  res: number
+  res: number,
 ) =>
   executeCommand("gs", [
     "-sDEVICE=pdfwrite",
@@ -46,3 +58,5 @@ export const resamplePDF = (
     `-sOutputFile=${output_file}`,
     source_pdf,
   ]);
+
+export const Default_Response_Error = { message: "Can not generating pdf" };

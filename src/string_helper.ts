@@ -1,5 +1,6 @@
 import { readFile } from "fs/promises";
 
+// const CssData =
 export const sanitizeHTML = async (domain: string, htmlContent: string) => {
   htmlContent = htmlContent.replace(
     /\(content\/|"content\/|'content\//g,
@@ -8,7 +9,7 @@ export const sanitizeHTML = async (domain: string, htmlContent: string) => {
         return domain;
       }
       return string.replace("content", `${domain}/content`);
-    }
+    },
   );
 
   const css = await Promise.all([

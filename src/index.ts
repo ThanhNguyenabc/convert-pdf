@@ -5,12 +5,12 @@ import cors from "cors";
 import router from "./route";
 import { PORT } from "./constants";
 import cluster from "cluster";
-
+import "./cluster_manager";
 require("dotenv").config();
 
-const os = cpus().length;
+// const os = cpus().length;
 
-const createApplication = () => {
+const createApplication = async () => {
   const app = express();
   app.use(cors());
   app.use(express.static("public"));
@@ -18,18 +18,34 @@ const createApplication = () => {
   app.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
   app.use("/", router);
 
-  app.listen(PORT, async () => {
-    console.log(`Server started on host : ${PORT}`);
+  app.listen(PORT, () => {
+    console.log("Server running on port ", PORT);
   });
 };
 
-if (cluster.isPrimary && process.env.NODE_ENV === "production") {
-  for (let i = 0; i < os; i++) {
-    cluster.fork();
-  }
-  cluster.on("exit", (worker) => {
-    console.log(`The Worker number: ${worker.id} has died`);
-  });
-} else {
-  createApplication();
-}
+// console.log("env:::", process.env.NODE_ENV);
+
+createApplication();
+
+// if (cluster.isPrimary) {
+//   for (let i = 0; i < os; i++) {
+//     cluster.fork();
+//   }
+//   cluster.on("exit", (worker) => {
+//     console.log(`The Worker number: ${worker.id} has died`);
+//   });
+// } else {
+//   createApplication();
+// }
+
+// setInterval(() => {
+//   const m = process.memoryUsage();
+
+//   const heapUsed = Math.round(m.heapUsed / 1024 / 1024);
+//   console.log({
+//     rss: Math.round(m.rss / 1024 / 1024),
+//     heapUsed: heapUsed,
+//     total: m.heapTotal,
+//     external: Math.round(m.external / 1024 / 1024),
+//   });
+// }, 5000);

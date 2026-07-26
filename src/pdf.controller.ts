@@ -1,80 +1,104 @@
 import { Request, Response } from "express";
-import puppeteer from "puppeteer";
-import { ChormeArgs, TIME_OUT } from "./constants";
+import { Page } from "puppeteer";
+import { Default_Response_Error, TIME_OUT } from "./constants";
 import fs from "fs";
-import sharp from "sharp";
 import minifyHtml from "@minify-html/node";
-import { createHash } from "crypto";
 import path from "path";
 import { sanitizeHTML } from "./string_helper";
+import { browserInstance, initBrowser } from "./cluster_manager";
+import { processImage } from "./image_helper";
+import { promisify } from "util";
+import { execFile } from "child_process";
+const execFileAsync = promisify(execFile);
 
 async function generatePDFfromHTML(htmlContent: string, outputPath: string) {
+  let page: Page | null = null;
+  let imageCache: Map<string, Promise<Buffer | null>> | null = new Map();
+  // let requestHandler: any = null;
+  let errorHandler: any = null;
+  let pageErrorHandler: any = null;
+
   try {
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ChormeArgs,
-      timeout: TIME_OUT,
-      protocolTimeout: 0,
-    });
+    if (!browserInstance) {
+      console.log("init browser");
+      await initBrowser();
+    }
+    if (!browserInstance) return null;
 
-    const page = await browser.newPage();
+    page = await browserInstance.newPage();
 
-    await page.setRequestInterception(true);
+    // Set memory limits
+    page.setDefaultNavigationTimeout(0); // 2 minutes
+    page.setDefaultTimeout(0); // 2 minutes
 
-    const imageCache = new Map<string, Buffer>();
+    // await page.setRequestInterception(true);
 
-    page.on("request", async (req) => {
-      if (req.resourceType() !== "image") {
-        req.continue();
-        return;
-      }
+    // Store handlers for cleanup
+    errorHandler = (error: Error) =>
+      console.error("Page error:", error.message);
+    pageErrorHandler = (error: Error) =>
+      console.error("Page error:", error.message);
 
-      try {
-        const cacheKey = req.url();
+    // requestHandler = async (req: any) => {
+    //   try {
+    //     if (req.resourceType() !== "image") {
+    //       return req.continue();
+    //     }
 
-        let imageBuffer: Buffer | undefined = imageCache.get(cacheKey);
+    //     const cacheKey = req.url();
+    //     let imagePromise = imageCache?.get(cacheKey);
+    //     if (!imagePromise) {
+    //       imagePromise = processImage(cacheKey);
+    //       imageCache?.set(cacheKey, imagePromise);
+    //     }
 
-        if (!imageBuffer) {
-          const response = await fetch(req.url(), {
-            method: req.method(),
-            headers: req.headers(),
-          });
+    //     const image = await imagePromise;
 
-          const buffer = Buffer.from(await response.arrayBuffer());
+    //     // If image processing failed (null), let Puppeteer load it normally
+    //     if (!image) {
+    //       return req.continue();
+    //     }
 
-          if (buffer.byteLength > 100000) {
-            imageBuffer = await sharp(buffer)
-              .webp({
-                alphaQuality: 100,
-                quality: 80, // Reduce quality to 80%
-              })
-              .resize({
-                width: 800,
-                withoutEnlargement: true,
-              }) // Resize if larger than 800px
-              .toBuffer();
-          } else {
-            imageBuffer = buffer;
-          }
-        }
-        req.respond({ body: imageBuffer });
-      } catch {
-        req.continue();
-      }
-    });
+    //     await req.respond({
+    //       body: image,
+    //       contentType: "image/webp",
+    //     });
+    //   } catch (error) {
+    //     console.error(
+    //       `[Request] Error handling image request:`,
+    //       error instanceof Error ? error.message : error,
+    //     );
+    //     try {
+    //       await req.continue();
+    //     } catch (e) {
+    //       // Request already handled
+    //     }
+    //   }
+    // };
+
+    page.on("error", errorHandler);
+    page.on("pageerror", pageErrorHandler);
+    // page.on("request", requestHandler);
+
+    page.emulateMediaType("screen");
 
     await page.setContent(htmlContent, {
-      waitUntil: "networkidle0",
+      waitUntil: "domcontentloaded",
       timeout: 0,
     });
+    await Promise.all([
+      page.evaluate(() => document.fonts.ready),
+      page.waitForFunction(
+        () => Array.from(document.images).every((img) => img.complete),
+        { timeout: 0 },
+      ),
+    ]);
 
-    await page.emulateMediaType("screen");
-
-    const pdf = await page.pdf({
+    await page.pdf({
       path: outputPath,
-      displayHeaderFooter: false,
       format: "A4",
-      width: "210mm",
+      // width: "210mm",
+      displayHeaderFooter: false,
       timeout: TIME_OUT,
       margin: {
         top: 0,
@@ -84,12 +108,35 @@ async function generatePDFfromHTML(htmlContent: string, outputPath: string) {
       },
       printBackground: true,
     });
-    await page.close();
-    return pdf;
+
+    return true;
   } catch (error) {
-    console.log("pdf error:::");
-    console.log(error);
+    console.log("rendering pdf error:", error);
     return null;
+  } finally {
+    // Proper cleanup
+    if (page) {
+      try {
+        // Remove all listeners
+        if (errorHandler) page.off("error", errorHandler);
+        if (pageErrorHandler) page.off("pageerror", pageErrorHandler);
+        // if (requestHandler) page.off("request", requestHandler);
+        // Disable request interception
+        // await page.setRequestInterception(false).catch(() => {});
+
+        // Close page and wait for it
+        await page.close();
+      } catch (error) {
+        console.error("Error during page cleanup:", error);
+      }
+    }
+
+    // Clear cache
+    if (imageCache) {
+      imageCache.clear();
+      imageCache = null;
+    }
+    page = null;
   }
 }
 
@@ -105,43 +152,60 @@ const convertHtmlToPdf = async (req: Request, res: Response) => {
     domain = domain.slice(0, -1);
   }
 
-  const htmlPage = await sanitizeHTML(domain, htmlContent);
+  let pdfFile: string;
+  let html: string | null = null;
+
   try {
-    const minifyHtmlPage = minifyHtml.minify(Buffer.from(htmlPage), {
-      minify_css: true,
-    });
-    const html = minifyHtmlPage.toString("utf-8");
-
-    const hash = createHash("sha256")
-      .update(html + domain)
-      .digest("hex");
-
-    const pdfFile = path.join("public", `${fileName}_${hash}.pdf`);
-
-    if (fs.existsSync(pdfFile)) {
-      return res.download(pdfFile);
-    }
-
-  
-    console.time("pdf rendering time");
-    const pdf = await generatePDFfromHTML(html, pdfFile);
-    console.timeEnd("pdf rendering time");
-
-    if (!pdf) {
-      return res.status(500).json({
-        message: "Can not generating pdf",
+    // Scope htmlPage and minifyHtmlPage to minimize memory footprint
+    {
+      const htmlPage = await sanitizeHTML(domain, htmlContent);
+      const minifyHtmlPage = minifyHtml.minify(Buffer.from(htmlPage), {
+        minify_css: true,
       });
+
+      html = minifyHtmlPage.toString("utf-8");
+
+      pdfFile = path.join("public", `${fileName}.pdf`);
     }
 
-    const pdfBuffer = Buffer.from(pdf);
-    const headers = new Map();
-    headers.set("Content-Type", "application/pdf");
-    headers.set("Content-Disposition", `attachment; filename=${fileName}.pdf`);
-    headers.set("Content-Length", pdfBuffer.length);
-    res.setHeaders(headers);
-    res.send(pdfBuffer);
+    const pdfFileOptimized = `${pdfFile}_compress.pdf`;
+    if (fs.existsSync(pdfFileOptimized)) {
+      html = null; // Clear before returning
+      return res.download(pdfFileOptimized);
+    }
+
+    // Generate PDF - only html string in memory during this operation
+    let isRenderSuccess: boolean | null = null;
+    try {
+      isRenderSuccess = await generatePDFfromHTML(html, pdfFile);
+      await execFileAsync("pdfcpu", ["optimize", pdfFile, pdfFileOptimized]);
+    } finally {
+      // Clear HTML immediately after PDF generation - no longer needed
+      html = null;
+    }
+
+    if (!isRenderSuccess) {
+      return res.status(500).json(Default_Response_Error);
+    }
+
+    // Set headers
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=${fileName}.pdf`,
+    );
+
+    res.on("close", async () => {
+      Promise.all([
+        fs.promises.rm(pdfFile, { force: true }),
+        fs.promises.rm(pdfFileOptimized, { force: true }),
+      ]);
+    });
+
+    fs.createReadStream(pdfFileOptimized).pipe(res);
   } catch (error) {
-    console.log(error);
+    html = null; // Cleanup on error
+
     return res.status(500).send(error);
   }
 };

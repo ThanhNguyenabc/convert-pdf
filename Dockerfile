@@ -1,4 +1,10 @@
+FROM golang:tip-alpine3.23  AS pdfcpu-builder
+
+RUN go install github.com/pdfcpu/pdfcpu/cmd/pdfcpu@v0.13.0
+
 FROM  node:23.11.0-slim AS base
+
+COPY --from=pdfcpu-builder /go/bin/pdfcpu /usr/local/bin/pdfcpu
 
 RUN apt-get update && apt-get install -y \
   fonts-liberation \
