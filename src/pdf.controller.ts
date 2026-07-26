@@ -178,7 +178,12 @@ const convertHtmlToPdf = async (req: Request, res: Response) => {
     let isRenderSuccess: boolean | null = null;
     try {
       isRenderSuccess = await generatePDFfromHTML(html, pdfFile);
-      await execFileAsync("pdfcpu", ["optimize", pdfFile, pdfFileOptimized]);
+      await execFileAsync("pdfcpu", [
+        "optimize",
+        "--force",
+        pdfFile,
+        pdfFileOptimized,
+      ]);
     } finally {
       // Clear HTML immediately after PDF generation - no longer needed
       html = null;
