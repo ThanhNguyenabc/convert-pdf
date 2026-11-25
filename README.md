@@ -9,12 +9,6 @@ Node.js application for converting HTML to PDF using Puppeteer.
 **Build and run:**
 
 ```bash
-docker-compose up --build
-```
-
-**Run in background:**
-
-```bash
 docker-compose up -d --build
 ```
 
@@ -31,12 +25,6 @@ Default: `http://localhost:3003`
 `http://localhost:3002`
 
 **Build and run:**
-
-```bash
-docker-compose -f docker-compose.prod.yaml up --build
-```
-
-**Run in background:**
 
 ```bash
 docker-compose -f docker-compose.prod.yaml up -d --build
