@@ -1,4 +1,4 @@
-export const PORT = 3002;
+export const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3002;
 
 export const TIME_OUT = 1800000;
 

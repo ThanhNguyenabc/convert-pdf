@@ -10,13 +10,13 @@ services:
       context: ./
       target: dev
     container_name: convert-pdf
-    # ports:
-    #   - 3002:3002
+
     volumes:
       - ./src:/app/src
       - ./public:/app/public
     environment:
       - TZ=Asia/Bangkok
+      - PORT=3003
 
 volumes:
   src:

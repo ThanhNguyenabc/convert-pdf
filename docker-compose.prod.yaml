@@ -11,12 +11,12 @@ services:
       context: .
       target: production
     container_name: html-pdf
-    # ports:
-    #   - 3002:3002
+
     volumes:
       - ./public:/app/public
     environment:
       - TZ=Asia/Bangkok
+      - PORT=3002
 
 volumes:
   src:
