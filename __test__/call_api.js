@@ -1,14 +1,9 @@
 const { readFileSync, writeFileSync } = require("fs");
 
+const API_URL  = 'http://localhost:3002/html-to-pdf'
+
 const batchRender = async () => {
-  // setInterval(()=>{})
-  const books = [
-    "abc.html",
-    "abc 1.html",
-    "abc 2.html",
-    "abc 3.html",
-    "abc 1.html",
-  ];
+  const books = ["abc.html"];
   await Promise.all(
     books.map((item, index) => {
       const htmlContent = readFileSync(item, "utf-8");
@@ -20,7 +15,7 @@ const batchRender = async () => {
         domain: "https://contentdev.ila.edu.vn/",
       };
 
-      return fetch("http://localhost:3002/html-to-pdf", {
+      return fetch(API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -42,7 +37,7 @@ const batchRender = async () => {
         });
     }),
   );
-  batchRender();
+  // batchRender();
   console.log("\n");
   console.log("-----------done-----");
 };

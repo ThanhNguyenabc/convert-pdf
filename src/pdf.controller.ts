@@ -6,7 +6,6 @@ import minifyHtml from "@minify-html/node";
 import path from "path";
 import { sanitizeHTML } from "./string_helper";
 import { browserInstance, initBrowser } from "./cluster_manager";
-import { processImage } from "./image_helper";
 import { promisify } from "util";
 import { execFile } from "child_process";
 const execFileAsync = promisify(execFile);
@@ -14,7 +13,6 @@ const execFileAsync = promisify(execFile);
 async function generatePDFfromHTML(htmlContent: string, outputPath: string) {
   let page: Page | null = null;
   let imageCache: Map<string, Promise<Buffer | null>> | null = new Map();
-  // let requestHandler: any = null;
   let errorHandler: any = null;
   let pageErrorHandler: any = null;
 
@@ -31,50 +29,11 @@ async function generatePDFfromHTML(htmlContent: string, outputPath: string) {
     page.setDefaultNavigationTimeout(0); // 2 minutes
     page.setDefaultTimeout(0); // 2 minutes
 
-    // await page.setRequestInterception(true);
-
     // Store handlers for cleanup
     errorHandler = (error: Error) =>
       console.error("Page error:", error.message);
     pageErrorHandler = (error: Error) =>
       console.error("Page error:", error.message);
-
-    // requestHandler = async (req: any) => {
-    //   try {
-    //     if (req.resourceType() !== "image") {
-    //       return req.continue();
-    //     }
-
-    //     const cacheKey = req.url();
-    //     let imagePromise = imageCache?.get(cacheKey);
-    //     if (!imagePromise) {
-    //       imagePromise = processImage(cacheKey);
-    //       imageCache?.set(cacheKey, imagePromise);
-    //     }
-
-    //     const image = await imagePromise;
-
-    //     // If image processing failed (null), let Puppeteer load it normally
-    //     if (!image) {
-    //       return req.continue();
-    //     }
-
-    //     await req.respond({
-    //       body: image,
-    //       contentType: "image/webp",
-    //     });
-    //   } catch (error) {
-    //     console.error(
-    //       `[Request] Error handling image request:`,
-    //       error instanceof Error ? error.message : error,
-    //     );
-    //     try {
-    //       await req.continue();
-    //     } catch (e) {
-    //       // Request already handled
-    //     }
-    //   }
-    // };
 
     page.on("error", errorHandler);
     page.on("pageerror", pageErrorHandler);
@@ -120,9 +79,6 @@ async function generatePDFfromHTML(htmlContent: string, outputPath: string) {
         // Remove all listeners
         if (errorHandler) page.off("error", errorHandler);
         if (pageErrorHandler) page.off("pageerror", pageErrorHandler);
-        // if (requestHandler) page.off("request", requestHandler);
-        // Disable request interception
-        // await page.setRequestInterception(false).catch(() => {});
 
         // Close page and wait for it
         await page.close();

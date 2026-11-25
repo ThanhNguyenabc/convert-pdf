@@ -33,22 +33,11 @@ const startMemoryCleanup = () => {
     if (!browserInstance) return;
 
     try {
-      // const pages = await browserInstance.pages();
-      // console.log(`[Memory] Current pages: ${pages.length}`);
-
       // Force garbage collection every 30s if V8 supports it
       if (global.gc) {
         global.gc();
         console.log("[Memory] Garbage collection triggered");
       }
-
-      // Get memory usage
-      // const metrics = process.memoryUsage();
-      // console.log("[Memory]", {
-      //   heapUsed: Math.round(metrics.heapUsed / 1024 / 1024) + "MB",
-      //   heapTotal: Math.round(metrics.heapTotal / 1024 / 1024) + "MB",
-      //   rss: Math.round(metrics.rss / 1024 / 1024) + "MB",
-      // });
     } catch (error) {
       console.error("Memory cleanup error:", error);
     }

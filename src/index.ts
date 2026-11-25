@@ -23,8 +23,6 @@ const createApplication = async () => {
   });
 };
 
-// console.log("env:::", process.env.NODE_ENV);
-
 createApplication();
 
 // if (cluster.isPrimary) {
